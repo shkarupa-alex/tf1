@@ -6,9 +6,9 @@ from setuptools import setup
 
 setup(
     name='tf1',
-    version='1.0.0',
+    version='1.0.1',
     description='F1-score metric for TensorFlow',
-    url='https://github.com/shkarupa-alex/nlpvocab',
+    url='https://github.com/shkarupa-alex/tf1',
     author='Shkarupa Alex',
     author_email='shkarupa.alex@gmail.com',
     license='MIT',
