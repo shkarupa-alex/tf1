@@ -9,7 +9,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='tf1',
-    version='1.0.1',
+    version='1.0.2',
     description='F1-score metric for TensorFlow',
     long_description=long_description,
     long_description_content_type="text/markdown",
