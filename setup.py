@@ -22,7 +22,10 @@ setup(
         'tensorflow>=1.5.0',
     ],
     test_suite='nose.collector',
-    tests_require=['nose'],
+    tests_require=[
+        'nose',
+        'scikit-learn>=0.20.0',
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

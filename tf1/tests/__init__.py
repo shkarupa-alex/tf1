@@ -4,27 +4,32 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import f1_score as sklearn_f1
 from tensorflow.python.framework import ops
 from .. import f1_score
 
 
-class TestF1Score(tf.test.TestCase):
+class TestF1Binary(tf.test.TestCase):
     def setUp(self):
         tf.set_random_seed(1)
 
+    @staticmethod
+    def f1_score(*args, **kwargs):
+        return f1_score(average='binary', num_classes=2, *args, **kwargs)
+
     def testVars(self):
         ops.reset_default_graph()
-        f1_score(predictions=tf.ones((10, 1)), labels=tf.ones((10, 1)))
-        expected = ('f1_score/precision/true_positives/count:0',
-                    'f1_score/recall/true_positives/count:0',
-                    'f1_score/precision/false_positives/count:0',
-                    'f1_score/recall/false_negatives/count:0')
+        self.f1_score(predictions=tf.ones((10, 1)), labels=tf.ones((10, 1)))
+        expected = ('f1_binary/precision/true_positives/count:0',
+                    'f1_binary/recall/true_positives/count:0',
+                    'f1_binary/precision/false_positives/count:0',
+                    'f1_binary/recall/false_negatives/count:0')
         self.assertEqual(set(expected), set(v.name for v in tf.local_variables()))
         self.assertEqual(set(expected), set(v.name for v in ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)))
 
     def testMetricsCollection(self):
         my_collection_name = '__metrics__'
-        mean, _ = f1_score(
+        mean, _ = self.f1_score(
             predictions=tf.ones((10, 1)),
             labels=tf.ones((10, 1)),
             metrics_collections=[my_collection_name])
@@ -32,7 +37,7 @@ class TestF1Score(tf.test.TestCase):
 
     def testUpdatesCollection(self):
         my_collection_name = '__updates__'
-        _, update_op = f1_score(
+        _, update_op = self.f1_score(
             predictions=tf.ones((10, 1)),
             labels=tf.ones((10, 1)),
             updates_collections=[my_collection_name])
@@ -41,7 +46,7 @@ class TestF1Score(tf.test.TestCase):
     def testValueTensorIsIdempotent(self):
         predictions = tf.random_uniform((10, 3), maxval=1, dtype=tf.int64, seed=1)
         labels = tf.random_uniform((10, 3), maxval=1, dtype=tf.int64, seed=1)
-        f1_value, update_op = f1_score(labels, predictions)
+        f1_value, update_op = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
@@ -60,7 +65,7 @@ class TestF1Score(tf.test.TestCase):
 
         predictions = tf.constant(inputs)
         labels = tf.constant(inputs)
-        f1_value, update_op = f1_score(labels, predictions)
+        f1_value, update_op = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
@@ -71,7 +76,7 @@ class TestF1Score(tf.test.TestCase):
         for dtype in (tf.bool, tf.int32, tf.float32):
             predictions = tf.cast(tf.constant([1, 0, 1, 0], shape=(1, 4)), dtype=dtype)
             labels = tf.cast(tf.constant([0, 1, 1, 0], shape=(1, 4)), dtype=dtype)
-            f1_value, update_op = f1_score(labels, predictions)
+            f1_value, update_op = self.f1_score(labels, predictions)
 
             with self.test_session() as sess:
                 sess.run(tf.local_variables_initializer())
@@ -81,7 +86,7 @@ class TestF1Score(tf.test.TestCase):
     def testWeighted1d(self):
         predictions = tf.constant([[1, 0, 1, 0], [1, 0, 1, 0]])
         labels = tf.constant([[0, 1, 1, 0], [1, 0, 0, 1]])
-        f1_value, update_op = f1_score(labels, predictions, weights=tf.constant([[2], [5]]))
+        f1_value, update_op = self.f1_score(labels, predictions, weights=tf.constant([[2], [5]]))
 
         with self.test_session():
             tf.local_variables_initializer().run()
@@ -98,7 +103,7 @@ class TestF1Score(tf.test.TestCase):
             predictions: ((1, 0, 1, 0), (1, 0, 1, 0)),
             labels: ((0, 1, 1, 0), (1, 0, 0, 1))
         }
-        f1_value, update_op = f1_score(labels, predictions, weights=2)
+        f1_value, update_op = self.f1_score(labels, predictions, weights=2)
 
         with self.test_session():
             tf.local_variables_initializer().run()
@@ -115,7 +120,7 @@ class TestF1Score(tf.test.TestCase):
             predictions: ((1, 0, 1, 0), (1, 0, 1, 0)),
             labels: ((0, 1, 1, 0), (1, 0, 0, 1))
         }
-        f1_value, update_op = f1_score(labels, predictions, weights=tf.constant([[2], [5]]))
+        f1_value, update_op = self.f1_score(labels, predictions, weights=tf.constant([[2], [5]]))
 
         with self.test_session():
             tf.local_variables_initializer().run()
@@ -128,7 +133,7 @@ class TestF1Score(tf.test.TestCase):
     def testWeighted2d(self):
         predictions = tf.constant([[1, 0, 1, 0], [1, 0, 1, 0]])
         labels = tf.constant([[0, 1, 1, 0], [1, 0, 0, 1]])
-        f1_value, update_op = f1_score(
+        f1_value, update_op = self.f1_score(
             labels,
             predictions,
             weights=tf.constant([[1, 2, 3, 4], [4, 3, 2, 1]]))
@@ -148,7 +153,7 @@ class TestF1Score(tf.test.TestCase):
             predictions: ((1, 0, 1, 0), (1, 0, 1, 0)),
             labels: ((0, 1, 1, 0), (1, 0, 0, 1))
         }
-        f1_value, update_op = f1_score(
+        f1_value, update_op = self.f1_score(
             labels,
             predictions,
             weights=tf.constant([[1, 2, 3, 4], [4, 3, 2, 1]]))
@@ -166,7 +171,7 @@ class TestF1Score(tf.test.TestCase):
 
         predictions = tf.constant(inputs)
         labels = tf.constant(1 - inputs)
-        f1_value, update_op = f1_score(labels, predictions)
+        f1_value, update_op = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
@@ -176,30 +181,19 @@ class TestF1Score(tf.test.TestCase):
     def testZeroTrueAndFalsePositivesGivesZeroF1(self):
         predictions = tf.constant([0, 0, 0, 0])
         labels = tf.constant([0, 0, 0, 0])
-        f1_value, update_op = f1_score(labels, predictions)
+        f1_value, update_op = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
             sess.run(update_op)
             self.assertEqual(0.0, f1_value.eval())
 
-    def testKnownResult(self):
-        predictions = tf.constant([1, 1, 0, 0, 0, 1, 0, 1])
-        labels = tf.constant([1, 0, 0, 1, 0, 1, 1, 1])
-
-        f1_value, update_f1 = f1_score(labels, predictions)
-
-        with self.test_session() as sess:
-            sess.run(tf.local_variables_initializer())
-            sess.run(update_f1)
-            self.assertAlmostEqual(0.6666667, f1_value.eval())
-
     def testAlmostAllFalse(self):
-        predictions = tf.constant([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        labels = tf.constant([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        predictions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         accuracy, update_accuracy = tf.metrics.accuracy(labels, predictions)
-        f1_value, update_f1 = f1_score(labels, predictions)
+        f1_value, update_f1 = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
@@ -208,12 +202,132 @@ class TestF1Score(tf.test.TestCase):
             self.assertEqual(0.0, f1_value.eval())
 
     def testAllTrue(self):
-        predictions = tf.constant([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        labels = tf.constant([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        predictions = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+        labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
 
-        f1_value, update_f1 = f1_score(labels, predictions)
+        f1_value, update_f1 = self.f1_score(labels, predictions)
 
         with self.test_session() as sess:
             sess.run(tf.local_variables_initializer())
             sess.run(update_f1)
             self.assertEqual(1.0, f1_value.eval())
+
+    def testKnownResult(self):
+        labels = [1, 0, 0, 1, 0, 1, 1, 1]
+        predictions = [1, 1, 0, 0, 0, 1, 0, 1]
+
+        known_value = sklearn_f1(labels, predictions, average='binary')
+        f1_value, update_f1 = f1_score(labels, predictions, average='binary')
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run(update_f1)
+            self.assertAlmostEqual(known_value, f1_value.eval())
+
+
+class TestF1Macro(TestF1Binary):
+    @staticmethod
+    def f1_score(*args, **kwargs):
+        return f1_score(average='macro', num_classes=2, *args, **kwargs)
+
+    def testVars(self):
+        ops.reset_default_graph()
+        self.f1_score(predictions=tf.ones((10, 1)), labels=tf.ones((10, 1)))
+        expected = ('f1_macro/precision_0/true_positives/count:0',
+                    'f1_macro/precision_0/false_positives/count:0',
+                    'f1_macro/precision_1/true_positives/count:0',
+                    'f1_macro/precision_1/false_positives/count:0',
+                    'f1_macro/recall_0/true_positives/count:0',
+                    'f1_macro/recall_0/false_negatives/count:0',
+                    'f1_macro/recall_1/true_positives/count:0',
+                    'f1_macro/recall_1/false_negatives/count:0')
+        self.assertEqual(set(expected), set(v.name for v in tf.local_variables()))
+        self.assertEqual(set(expected), set(v.name for v in ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)))
+
+    def testAlmostAllFalse(self):
+        predictions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        accuracy, update_accuracy = tf.metrics.accuracy(labels, predictions)
+        f1_value, update_f1 = self.f1_score(labels, predictions)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run([update_accuracy, update_f1])
+            self.assertAlmostEqual(0.9, accuracy.eval())
+            self.assertAlmostEqual(0.4736842, f1_value.eval())
+
+    def testZeroTrueAndFalsePositivesGivesZeroF1(self):
+        predictions = tf.constant([0, 0, 0, 0])
+        labels = tf.constant([0, 0, 0, 0])
+        f1_value, update_op = self.f1_score(labels, predictions)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run(update_op)
+            self.assertEqual(0.5, f1_value.eval())
+
+    def testKnownResult(self):
+        labels = [0, 1, 2, 0, 1, 2]
+        predictions = [0, 2, 1, 0, 0, 1]
+
+        known_value = sklearn_f1(labels, predictions, average='macro')
+        f1_value, update_f1 = f1_score(labels, predictions, average='macro', num_classes=3)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run(update_f1)
+            self.assertAlmostEqual(known_value, f1_value.eval())
+
+
+class TestF1Micro(TestF1Binary):
+    @staticmethod
+    def f1_score(*args, **kwargs):
+        return f1_score(average='micro', num_classes=2, *args, **kwargs)
+
+    def testVars(self):
+        ops.reset_default_graph()
+        self.f1_score(predictions=tf.ones((10, 1)), labels=tf.ones((10, 1)))
+        expected = ('f1_micro/true_positives_0/count:0',
+                    'f1_micro/true_positives_1/count:0',
+                    'f1_micro/false_positives_0/count:0',
+                    'f1_micro/false_positives_1/count:0',
+                    'f1_micro/false_negatives_0/count:0',
+                    'f1_micro/false_negatives_1/count:0')
+        self.assertEqual(set(expected), set(v.name for v in tf.local_variables()))
+        self.assertEqual(set(expected), set(v.name for v in ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)))
+
+    def testAlmostAllFalse(self):
+        predictions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        labels = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        accuracy, update_accuracy = tf.metrics.accuracy(labels, predictions)
+        f1_value, update_f1 = self.f1_score(labels, predictions)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run([update_accuracy, update_f1])
+            self.assertAlmostEqual(0.9, accuracy.eval())
+            self.assertAlmostEqual(0.9, f1_value.eval())
+
+    def testZeroTrueAndFalsePositivesGivesZeroF1(self):
+        predictions = tf.constant([0, 0, 0, 0])
+        labels = tf.constant([0, 0, 0, 0])
+        f1_value, update_op = self.f1_score(labels, predictions)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run(update_op)
+            self.assertEqual(1.0, f1_value.eval())
+
+    def testKnownResult(self):
+        labels = [0, 1, 2, 0, 1, 2]
+        predictions = [0, 2, 1, 0, 0, 1]
+
+        known_value = sklearn_f1(labels, predictions, average='micro')
+        f1_value, update_f1 = f1_score(labels, predictions, average='micro', num_classes=3)
+
+        with self.test_session() as sess:
+            sess.run(tf.local_variables_initializer())
+            sess.run(update_f1)
+            self.assertAlmostEqual(known_value, f1_value.eval())
