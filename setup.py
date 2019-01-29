@@ -19,8 +19,13 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=1.5.0',
+        # https://github.com/tensorflow/tensorflow/issues/7166
+        # 'tensorflow>=1.5.0',
     ],
+    extras_require={
+        'tf_cpu': ['tensorflow>=1.5.0'],
+        'tf_gpu': ['tensorflow-gpu>=1.5.0'],
+    },
     test_suite='nose.collector',
     tests_require=[
         'nose',
